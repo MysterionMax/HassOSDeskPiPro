@@ -31,12 +31,12 @@ fcomp() {
   (( ${x:-0} $op ${y:-0} ))
 } 
 
-CorF=$(cat options.json |jq -r '.CorF')
-t1=$(mkfloat $(cat options.json |jq -r '.LowRange'))
-t2=$(mkfloat $(cat options.json |jq -r '.MediumRange'))
-t3=$(mkfloat $(cat options.json |jq -r '.HighRange'))
-quiet=$(cat options.json |jq -r '.QuietProfile')
-serialDevice=$(cat options.json |jq -r '.SerialDevice')
+CorF=$(cat /data/options.json |jq -r '.CorF')
+t1=$(mkfloat $(cat /data/options.json |jq -r '.LowRange'))
+t2=$(mkfloat $(cat /data/options.json |jq -r '.MediumRange'))
+t3=$(mkfloat $(cat /data/options.json |jq -r '.HighRange'))
+quiet=$(cat /data/options.json |jq -r '.QuietProfile')
+serialDevice=$(cat /data/options.json |jq -r '.SerialDevice')
 
 lastPosition=0
 curPosition=-1
