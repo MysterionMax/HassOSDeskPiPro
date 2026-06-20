@@ -1,10 +1,10 @@
 ARG BUILD_FROM=alpine:3.19
 FROM $BUILD_FROM
 
-ENV LANG C.UTF-8
+ENV LANG=C.UTF-8
 WORKDIR /data
 
-# 1. Update system and install i2c-tools PLUS the compiler tools needed for the DeskPi driver
+# 1. Update system and install tools
 RUN apk update && apk add --no-cache \
     i2c-tools \
     coreutils \
@@ -13,13 +13,16 @@ RUN apk update && apk add --no-cache \
     gcc \
     git
 
-# 2. Clone the official DeskPi repository so the driver files actually exist
+# 2. Clone the repository
 RUN git clone https://github.com/DeskPi-Team/deskpi.git /data/deskpi
-RUN chmod +x /data/deskpi/install.sh
 
-# 3. Copy your local run.sh script into the root directory
+# 3. Target the correct subfolder for DeskPi Pro compilation files
+WORKDIR /data/deskpi/drivers/c
+RUN chmod +x install.sh
+
+# 4. Bring your local run.sh script back to the main data folder and set entry point
+WORKDIR /
 COPY run.sh /
 RUN chmod a+x /run.sh
 
-# 4. Let run.sh handle the startup
 CMD [ "/run.sh" ]
