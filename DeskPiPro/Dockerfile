@@ -4,23 +4,23 @@ FROM $BUILD_FROM
 ENV LANG=C.UTF-8
 WORKDIR /data
 
-# 1. Update system and install required build components
+# 1. Install all dependencies required to build the C/Python drivers
 RUN apk update && apk add --no-cache \
     i2c-tools \
     coreutils \
     g++ \
     make \
     gcc \
-    git
+    git \
+    bash
 
-# 2. Clone the repository into a clean workspace folder
+# 2. Clone the DeskPi hardware tools
 RUN git clone https://github.com/DeskPi-Team/deskpi.git /data/deskpi
 
-# 3. Automatically find and make ALL install scripts executable across the repo
-RUN find /data/deskpi -name "install.sh" -exec chmod +x {} +
+# 3. Enter the correct DeskPi Pro driver directory and build the binary ahead of time
+WORKDIR /data/deskpi/drivers/c
+RUN gcc -o deskpi-daemon deskpi.c
 
-# 4. Copy your local execution script and specify container entryway
-COPY run.sh /
-RUN chmod a+x /run.sh
-
-CMD [ "/run.sh" ]
+# 4. Define exactly what to execute when the add-on clicks "Start"
+# We directly trigger the compiled daemon binary in the foreground
+CMD ["/data/deskpi/drivers/c/deskpi-daemon"]
