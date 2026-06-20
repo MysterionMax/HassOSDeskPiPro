@@ -1,13 +1,14 @@
 {
   "name": "DeskPi Pro Active Cooling (Fixed)",
-  "version": "0.6e",
+  "version": "0.6f",
   "slug": "deskpipro",
   "description": "This adjusts the temp of DeskPi Pro by fan control",
   "arch": ["aarch64"],
   "startup": "services",
   "boot": "auto",
   "full_access": true,
-  "privileged": ["SYS_RAWIO"],
+  "privileged": ["SYS_RAWIO", "SYS_ADMIN"],
+  "udev": true,
   "ingress": true,
   "homeassistant_api": true,
   "devices": [
