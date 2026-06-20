@@ -1,26 +1,16 @@
-ARG BUILD_FROM=alpine:3.19
+ARG BUILD_FROM=ghcr.io/home-assistant/aarch64-base:latest
 FROM $BUILD_FROM
 
 ENV LANG=C.UTF-8
-WORKDIR /data
 
-# 1. Install all dependencies required to build the C/Python drivers
+# Install only the system packages your run.sh script actually calls
 RUN apk update && apk add --no-cache \
     i2c-tools \
-    coreutils \
-    g++ \
-    make \
-    gcc \
-    git \
-    bash
+    jq \
+    coreutils
 
-# 2. Clone the DeskPi hardware tools
-RUN git clone https://github.com/DeskPi-Team/deskpi.git /data/deskpi
+# Copy your local run.sh script into the container root context
+COPY run.sh /
+RUN chmod a+x /run.sh
 
-# 3. Enter the correct DeskPi Pro driver directory and build the binary ahead of time
-WORKDIR /data/deskpi/drivers/c
-RUN gcc -o deskpi-daemon deskpi.c
-
-# 4. Define exactly what to execute when the add-on clicks "Start"
-# We directly trigger the compiled daemon binary in the foreground
-CMD ["/data/deskpi/drivers/c/deskpi-daemon"]
+CMD [ "/run.sh" ]
