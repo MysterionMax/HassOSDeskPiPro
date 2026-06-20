@@ -1,10 +1,9 @@
 #!/usr/bin/with-contenv bashio
 
-
-##for the web ui
+## for the web ui
 fun() {  while true; do nc -l -p 8099 -e  echo -e 'HTTP/1.1 200 OK\r\nServer: DeskPiPro\r\nDate:$(date)\r\nContent-Type: text/html; charset=UTF8\r\nCache-Control: no-store, no cache, must-revalidate\r\n\r\n<!DOCTYPE html><html><body><p>DeskPi Pro Active Cooling!</body></html>\r\n\n\n'; done }; fun&
 
-##make everything into a float
+## make everything into a float
 mkfloat(){
   str=$1
   if [[ $str != *"."* ]]; then
@@ -13,11 +12,7 @@ mkfloat(){
   echo $str;
 }
 
-
-
 ## Float comparison so that we don't need to call non-bash processes
-
-
 fcomp() {
   local oldIFS="$IFS" op=$2 x y digitx digity
   IFS='.' x=( ${1##+([0]|[-]|[+])}) y=( ${3##+([0]|[-]|[+])}) IFS="$oldIFS"
@@ -31,6 +26,7 @@ fcomp() {
   (( ${x:-0} $op ${y:-0} ))
 } 
 
+# Read configured variables
 CorF=$(cat /data/options.json |jq -r '.CorF')
 t1=$(mkfloat $(cat /data/options.json |jq -r '.LowRange'))
 t2=$(mkfloat $(cat /data/options.json |jq -r '.MediumRange'))
@@ -42,34 +38,46 @@ lastPosition=0
 curPosition=-1
 cpuTemp=0
 
-
 ingress(){
   while true; do nc -l -p 8099 -e sh -c echo -e 'HTTP/1.1 200 OK\r\nServer: DeskPiPro\r\nDate:$(date)\r\nContent-Type: text/html; charset=UTF8\r\nCache-Control: no-store, no cache, must-revalidate\r\n\r\n<!DOCTYPE html><html><body><p>Fan Speed:'$lastPosition'\r\n Temp:$cpuTemp</body></html>\r\n\n\n 2>&1'  ; done
-
 }
-if [ ! -e $serialDevice ]; then
-  echo "could not find $serialDevice. This addon cannot continue without a serial device. Here is a list of possible SerialDevice:";
-  echo $(ls /dev/ttyUSB*)
-  exit 1;
+
+# Dynamic Check: Look for alternative serial pathways if configured one is missing
+if [ ! -e "$serialDevice" ]; then
+  echo "Configured device $serialDevice not found. Scanning for active serial interfaces..."
+  if [ -e /dev/ttyUSB0 ]; then
+    serialDevice="/dev/ttyUSB0"
+  elif [ -e /dev/ttyAMA0 ]; then
+    serialDevice="/dev/ttyAMA0"
+  elif [ -e /dev/ttyS0 ]; then
+    serialDevice="/dev/ttyS0"
+  else
+    echo "CRITICAL: No valid USB or hardware serial interfaces found inside the container."
+    echo "Listing contents of /dev directory:"
+    ls /dev/
+    exit 1
+  fi
 fi
 
+echo "Successfully connected to serial device: $serialDevice"
 ingress &
+
 until false; do
-  read cpuRawTemp</sys/class/thermal/thermal_zone0/temp #read instead of cat fpr process reduction
-  cpuTemp=$(( $cpuRawTemp/1000 )) #built-in bash math
-    unit="C"
-  if [ $CorF == "F" ]; then #convert to F
-    cpuTemp=$(( ( $cpuTemp *  9/5 ) + 32 ));
+  read cpuRawTemp</sys/class/thermal/thermal_zone0/temp 
+  cpuTemp=$(( $cpuRawTemp/1000 )) 
+  unit="C"
+  if [ $CorF == "F" ]; then 
+    cpuTemp=$(( ( $cpuTemp * 9/5 ) + 32 ));
     unit="F"
   fi
   value=$(mkfloat $cpuTemp)
   echo "Current Temperature $cpuTemp °$unit"
   if ( fcomp $value '<=' $t1 ); then
-    curPosition=1; #less than lowest
+    curPosition=1; 
   elif ( fcomp $t1 '<=' $value && fcomp $value '<=' $t2 ); then
-    curPosition=2; #between 1 and 2
+    curPosition=2; 
   elif ( fcomp $t2 '<=' $value && fcomp $value '<=' $t3 ); then
-    curPosition=3; #between 2 and 3
+    curPosition=3; 
   else
     curPosition=4;
   fi
